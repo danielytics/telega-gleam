@@ -2,10 +2,10 @@ name = "telega"
 version = "0.3.0"
 description = "Gleam Telegram Bot Library"
 licences = ["Apache-2.0"]
-repository = { type = "github", user = "bondiano", repo = "telega" }
+repository = { type = "github", user = "bondiano", repo = "telega-gleam" }
 links = [
-    { title = "Issues", href = "https://github.com/bondiano/telega/issues" },
-    { title = "Examples", href = "https://github.com/bondiano/telega/tree/master/examples"}
+    { title = "Issues", href = "https://github.com/bondiano/telega-gleam/issues" },
+    { title = "Examples", href = "https://github.com/bondiano/telega-gleam/tree/master/examples"}
 ]
 
 gleam = ">= 0.32.0"
