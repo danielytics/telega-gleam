@@ -6,7 +6,7 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 import gleam/otp/supervisor
-import gleam/regex.{type Regex}
+import gleam/regexp.{type Regexp}
 import gleam/result
 import gleam/string
 import telega/api
@@ -342,16 +342,16 @@ fn handle_bot_instanse_message(
 pub type Hears {
   HearText(text: String)
   HearTexts(texts: List(String))
-  HearRegex(regex: Regex)
-  HearRegexes(regexes: List(Regex))
+  HearRegex(regex: Regexp)
+  HearRegexes(regexes: List(Regexp))
 }
 
 fn hears_check(text: String, hear: Hears) -> Bool {
   case hear {
     HearText(str) -> text == str
     HearTexts(strs) -> list.contains(strs, text)
-    HearRegex(re) -> regex.check(re, text)
-    HearRegexes(regexes) -> list.any(regexes, regex.check(_, text))
+    HearRegex(re) -> regexp.check(re, text)
+    HearRegexes(regexes) -> list.any(regexes, regexp.check(_, text))
   }
 }
 
@@ -383,7 +383,7 @@ pub type Handler(session) {
 }
 
 pub type CallbackQueryFilter {
-  CallbackQueryFilter(re: Regex)
+  CallbackQueryFilter(re: Regexp)
 }
 
 fn do_handle(
@@ -416,7 +416,7 @@ fn do_handle(
     HandleCallbackQuery(filter, handle), CallbackQueryUpdate(raw: raw, ..) ->
       case raw.data {
         Some(data) ->
-          case regex.check(filter.re, data) {
+          case regexp.check(filter.re, data) {
             True -> Some(handle(new_context(bot, update), data, raw.id))
             False -> None
           }

@@ -449,7 +449,7 @@ fn send_with_retry(
   let response = httpc.send(api_request)
 
   case retries {
-    0 -> response
+    0 -> response |> result.map_error(dynamic.from)
     _ -> {
       case response {
         Ok(response) -> {

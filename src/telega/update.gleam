@@ -107,7 +107,7 @@ fn extract_command(text: String) -> Command {
     [command, ..payload] ->
       Command(
         text:,
-        command: string.drop_left(command, 1),
+        command: string.drop_start(command, 1),
         payload: payload
           |> string.join(" ")
           |> Some,

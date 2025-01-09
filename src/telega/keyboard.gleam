@@ -2,7 +2,7 @@
 
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/regex
+import gleam/regexp
 import gleam/result
 import gleam/string
 import telega/bot.{
@@ -141,7 +141,7 @@ pub fn filter_inline_keyboard_query(
     |> option.values
     |> string.join("|")
 
-  let assert Ok(re) = regex.from_string("^(" <> options <> ")$")
+  let assert Ok(re) = regexp.from_string("^(" <> options <> ")$")
 
   CallbackQueryFilter(re)
 }
