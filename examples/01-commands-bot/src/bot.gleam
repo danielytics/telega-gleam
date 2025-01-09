@@ -36,7 +36,7 @@ fn handle_request(bot: Bot, req: Request) -> Response {
   use req <- middleware(req, bot)
 
   case wisp.path_segments(req) {
-    ["helath"] -> wisp.ok()
+    ["health"] -> wisp.ok()
     _ -> wisp.not_found()
   }
 }
