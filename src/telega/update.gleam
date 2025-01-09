@@ -29,7 +29,7 @@ pub type Command {
   )
 }
 
-/// Decode a update from the Telegram API to `Update` instanse.
+/// Decode a update from the Telegram API to `Update` instance.
 pub fn decode(json: Dynamic) -> Result(Update, String) {
   use raw_update <- result.try(
     model.decode_update(json)
