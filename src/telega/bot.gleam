@@ -23,8 +23,8 @@ import telega/update.{
 type RegestrySubject =
   Subject(RegistryMessage)
 
-type RootBotInstanseSubject(session) =
-  Subject(Subject(BotInstanseMessage(session)))
+type RootBotInstanceSubject(session) =
+  Subject(Subject(BotInstanceMessage(session)))
 
 type Registry(session) {
   /// Registry works as routing for chat_id to bot instance.
@@ -36,22 +36,22 @@ type Registry(session) {
     session_settings: SessionSettings(session),
     handlers: List(Handler(session)),
     registry_subject: RegestrySubject,
-    bot_instances_subject: RootBotInstanseSubject(session),
+    bot_instances_subject: RootBotInstanceSubject(session),
   )
 }
 
-type BotInstanseSubject(session) =
-  Subject(BotInstanseMessage(session))
+type BotInstanceSubject(session) =
+  Subject(BotInstanceMessage(session))
 
 type RegistryItem(session) =
-  BotInstanseSubject(session)
+  BotInstanceSubject(session)
 
 pub type RegistryMessage {
   HandleBotRegistryMessage(update: Update)
 }
 
 fn try_send_update(registry_item: RegistryItem(session), update: Update) {
-  process.try_call(registry_item, BotInstanseMessageNew(_, update), 1000)
+  process.try_call(registry_item, BotInstanceMessageNew(_, update), 1000)
 }
 
 fn handle_registry_message(
@@ -86,7 +86,7 @@ fn add_bot_instance(
 ) {
   let registry_actor =
     supervisor.supervisor(fn(_) {
-      start_bot_instanse(
+      start_bot_instance(
         registry: registry,
         update: update,
         session_key: session_key,
@@ -100,7 +100,7 @@ fn add_bot_instance(
   let bot_subject_result =
     process.receive(registry.bot_instances_subject, 1000)
     |> result.map_error(fn(e) {
-      "Failed to start bot instanse:\n" <> string.inspect(e)
+      "Failed to start bot instance:\n" <> string.inspect(e)
     })
 
   case bot_subject_result {
@@ -115,7 +115,7 @@ fn add_bot_instance(
           )
         Error(e) -> {
           log.error(
-            "Failed to send message to bot instanse: " <> string.inspect(e),
+            "Failed to send message to bot instance: " <> string.inspect(e),
           )
           actor.continue(registry)
         }
@@ -180,11 +180,11 @@ pub fn wait_handler(
   ctx: Context(session),
   handler: Handler(session),
 ) -> Result(session, String) {
-  process.send(ctx.bot_subject, BotInstanseMessageWaitHandler(handler))
+  process.send(ctx.bot_subject, BotInstanceMessageWaitHandler(handler))
   Ok(ctx.session)
 }
 
-fn new_context(bot: BotInstanse(session), update: Update) -> Context(session) {
+fn new_context(bot: BotInstance(session), update: Update) -> Context(session) {
   Context(
     update:,
     key: bot.key,
@@ -201,7 +201,7 @@ pub type SessionSettings(session) {
   SessionSettings(
     // Calls after all handlers to persist the session.
     persist_session: fn(String, session) -> Result(session, String),
-    // Calls on initialization of the bot instanse to get the session.
+    // Calls on initialization of the bot instance to get the session.
     get_session: fn(String) -> Result(session, String),
   )
 }
@@ -226,12 +226,12 @@ fn get_session(
   |> result.map_error(fn(e) { "Failed to get session:\n " <> string.inspect(e) })
 }
 
-fn start_bot_instanse(
+fn start_bot_instance(
   registry registry: Registry(session),
   update update: Update,
   session_key session_key: String,
-  parent_subject parent_subject: RootBotInstanseSubject(session),
-) -> Result(BotInstanseSubject(session), actor.StartError) {
+  parent_subject parent_subject: RootBotInstanceSubject(session),
+) -> Result(BotInstanceSubject(session), actor.StartError) {
   actor.start_spec(actor.Spec(
     init: fn() {
       let actor_subj = process.new_subject()
@@ -242,7 +242,7 @@ fn start_bot_instanse(
 
       case get_session(registry.session_settings, update) {
         Ok(session) ->
-          BotInstanse(
+          BotInstance(
             session:,
             key: session_key,
             bot_info: registry.bot_info,
@@ -253,15 +253,15 @@ fn start_bot_instanse(
             own_subject: actor_subj,
           )
           |> actor.Ready(selector)
-        Error(e) -> actor.Failed("Failed to init bot instanse:\n" <> e)
+        Error(e) -> actor.Failed("Failed to init bot instance:\n" <> e)
       }
     },
-    loop: handle_bot_instanse_message,
+    loop: handle_bot_instance_message,
     init_timeout: 10_000,
   ))
 }
 
-// Bot Instanse --------------------------------------------------------------------
+// Bot Instance --------------------------------------------------------------------
 
 /// Handlers context.
 pub type Context(session) {
@@ -271,18 +271,18 @@ pub type Context(session) {
     bot_info: User,
     config: Config,
     session: session,
-    bot_subject: BotInstanseSubject(session),
+    bot_subject: BotInstanceSubject(session),
   )
 }
 
-pub type BotInstanseMessage(session) {
-  BotInstanseMessageOk
-  BotInstanseMessageNew(client: BotInstanseSubject(session), update: Update)
-  BotInstanseMessageWaitHandler(handler: Handler(session))
+pub type BotInstanceMessage(session) {
+  BotInstanceMessageOk
+  BotInstanceMessageNew(client: BotInstanceSubject(session), update: Update)
+  BotInstanceMessageWaitHandler(handler: Handler(session))
 }
 
-type BotInstanse(session) {
-  BotInstanse(
+type BotInstance(session) {
+  BotInstance(
     key: String,
     session: session,
     config: Config,
@@ -290,23 +290,23 @@ type BotInstanse(session) {
     bot_info: User,
     session_settings: SessionSettings(session),
     active_handler: Option(Handler(session)),
-    own_subject: BotInstanseSubject(session),
+    own_subject: BotInstanceSubject(session),
   )
 }
 
-fn handle_bot_instanse_message(
-  message: BotInstanseMessage(session),
-  bot: BotInstanse(session),
+fn handle_bot_instance_message(
+  message: BotInstanceMessage(session),
+  bot: BotInstance(session),
 ) {
   case message {
-    BotInstanseMessageNew(client, message) -> {
+    BotInstanceMessageNew(client, message) -> {
       case bot.active_handler {
         Some(handler) ->
           case do_handle(bot, message, handler) {
             Some(Ok(new_session)) -> {
-              actor.send(client, BotInstanseMessageOk)
+              actor.send(client, BotInstanceMessageOk)
               actor.continue(
-                BotInstanse(..bot, session: new_session, active_handler: None),
+                BotInstance(..bot, session: new_session, active_handler: None),
               )
             }
             Some(Error(e)) -> {
@@ -314,15 +314,15 @@ fn handle_bot_instanse_message(
               actor.Stop(process.Normal)
             }
             None -> {
-              actor.send(client, BotInstanseMessageOk)
+              actor.send(client, BotInstanceMessageOk)
               actor.continue(bot)
             }
           }
         None ->
           case loop_handlers(bot, message, bot.handlers) {
             Ok(new_session) -> {
-              actor.send(client, BotInstanseMessageOk)
-              actor.continue(BotInstanse(..bot, session: new_session))
+              actor.send(client, BotInstanceMessageOk)
+              actor.continue(BotInstance(..bot, session: new_session))
             }
             Error(e) -> {
               log.error("Failed to handle update:\n" <> e)
@@ -331,9 +331,9 @@ fn handle_bot_instanse_message(
           }
       }
     }
-    BotInstanseMessageWaitHandler(handler) ->
-      actor.continue(BotInstanse(..bot, active_handler: Some(handler)))
-    BotInstanseMessageOk -> actor.continue(bot)
+    BotInstanceMessageWaitHandler(handler) ->
+      actor.continue(BotInstance(..bot, active_handler: Some(handler)))
+    BotInstanceMessageOk -> actor.continue(bot)
   }
 }
 
@@ -387,7 +387,7 @@ pub type CallbackQueryFilter {
 }
 
 fn do_handle(
-  bot: BotInstanse(session),
+  bot: BotInstance(session),
   update: Update,
   handler: Handler(session),
 ) -> Option(Result(session, String)) {
@@ -427,7 +427,7 @@ fn do_handle(
 }
 
 fn loop_handlers(
-  bot: BotInstanse(session),
+  bot: BotInstance(session),
   update: Update,
   handlers: List(Handler(session)),
 ) {
@@ -435,7 +435,7 @@ fn loop_handlers(
     [handler, ..rest] ->
       case do_handle(bot, update, handler) {
         Some(Ok(new_session)) ->
-          loop_handlers(BotInstanse(..bot, session: new_session), update, rest)
+          loop_handlers(BotInstance(..bot, session: new_session), update, rest)
         Some(Error(e)) ->
           Error(
             "Failed to handle message " <> string.inspect(update) <> ":\n" <> e,
