@@ -87,10 +87,10 @@ pub fn handle_command(
   command command: String,
   handler handler: fn(Context(session), Command) -> Result(session, String),
 ) -> TelegaBuilder(session) {
-  TelegaBuilder(
-    ..builder,
-    handlers: [HandleCommand(command, handler), ..builder.handlers],
-  )
+  TelegaBuilder(..builder, handlers: [
+    HandleCommand(command, handler),
+    ..builder.handlers
+  ])
 }
 
 pub fn wait_command(
@@ -107,10 +107,10 @@ pub fn handle_commands(
   commands commands: List(String),
   handler handler: fn(Context(session), Command) -> Result(session, String),
 ) -> TelegaBuilder(session) {
-  TelegaBuilder(
-    ..builder,
-    handlers: [HandleCommands(commands, handler), ..builder.handlers],
-  )
+  TelegaBuilder(..builder, handlers: [
+    HandleCommands(commands, handler),
+    ..builder.handlers
+  ])
 }
 
 pub fn wait_commands(
@@ -142,10 +142,10 @@ pub fn handle_hears(
   hears hears: Hears,
   handler handler: fn(Context(session), String) -> Result(session, String),
 ) -> TelegaBuilder(session) {
-  TelegaBuilder(
-    ..builder,
-    handlers: [HandleHears(hears, handler), ..builder.handlers],
-  )
+  TelegaBuilder(..builder, handlers: [
+    HandleHears(hears, handler),
+    ..builder.handlers
+  ])
 }
 
 pub fn wait_hears(
@@ -163,10 +163,10 @@ pub fn handle_callback_query(
   handler handler: fn(Context(session), String, String) ->
     Result(session, String),
 ) -> TelegaBuilder(session) {
-  TelegaBuilder(
-    ..builder,
-    handlers: [HandleCallbackQuery(filter, handler), ..builder.handlers],
-  )
+  TelegaBuilder(..builder, handlers: [
+    HandleCallbackQuery(filter, handler),
+    ..builder.handlers
+  ])
 }
 
 pub fn wait_callback_query(

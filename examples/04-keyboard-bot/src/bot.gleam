@@ -1,5 +1,5 @@
 import dotenv_gleam
-import gleam/erlang/os
+import envoy
 import gleam/erlang/process
 import gleam/option.{None, Some}
 import gleam/result
@@ -14,6 +14,7 @@ import telega/keyboard as telega_keyboard
 import telega/model.{EditMessageTextParameters, Stringed} as telega_model
 import telega/reply
 import wisp.{type Response}
+import wisp/wisp_mist
 
 type BotContext =
   Context(LanguageBotSession)
@@ -142,10 +143,10 @@ fn start_command_handler(
 }
 
 fn build_bot() {
-  let assert Ok(token) = os.get_env("BOT_TOKEN")
-  let assert Ok(webhook_path) = os.get_env("WEBHOOK_PATH")
-  let assert Ok(url) = os.get_env("SERVER_URL")
-  let assert Ok(secret_token) = os.get_env("BOT_SECRET_TOKEN")
+  let assert Ok(token) = envoy.get("BOT_TOKEN")
+  let assert Ok(webhook_path) = envoy.get("WEBHOOK_PATH")
+  let assert Ok(url) = envoy.get("SERVER_URL")
+  let assert Ok(secret_token) = envoy.get("BOT_SECRET_TOKEN")
 
   telega.new(token:, url:, webhook_path:, secret_token: Some(secret_token))
   |> telega.handle_command("start", start_command_handler)
@@ -162,11 +163,10 @@ pub fn main() {
   let assert Ok(bot) = build_bot()
   let secret_key_base = wisp.random_string(64)
   let assert Ok(_) =
-    wisp.mist_handler(handle_request(bot, _), secret_key_base)
+    wisp_mist.handler(handle_request(bot, _), secret_key_base)
     |> mist.new
     |> mist.port(8000)
     |> mist.start_http
-    |> result.nil_error
 
   process.sleep_forever()
   Ok(Nil)

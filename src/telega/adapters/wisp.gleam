@@ -3,6 +3,7 @@ import gleam/http/request
 import gleam/http/response.{Response as HttpResponse}
 import gleam/result
 import telega.{type Telega}
+
 import telega/log
 import telega/update
 import wisp.{
@@ -37,9 +38,10 @@ pub fn handle_bot(
 
   case update.decode(json) {
     Ok(message) -> {
-      use <- bool.lazy_guard(is_secret_token_valid(telega, req), fn() {
-        HttpResponse(401, [], WispEmptyBody)
-      })
+      use <- bool.lazy_guard(
+        when: !is_secret_token_valid(telega, req),
+        return: fn() { HttpResponse(401, [], WispEmptyBody) },
+      )
       case telega.handle_update(telega, message) {
         Ok(_) -> wisp.ok()
         Error(error) -> {

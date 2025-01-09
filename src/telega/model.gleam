@@ -384,7 +384,7 @@ pub fn decode_message(json: Dynamic) -> Result(Message, dynamic.DecodeErrors) {
       is_from_offline
     ->
       Error(
-        list.concat([
+        list.flatten([
           all_errors(message_id),
           all_errors(message_thread_id),
           all_errors(from),

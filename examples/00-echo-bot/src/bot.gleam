@@ -7,6 +7,7 @@ import telega/adapters/wisp as telega_wisp
 import telega/reply
 import telega/update.{CommandUpdate, TextUpdate}
 import wisp
+import wisp/wisp_mist
 
 fn handle_request(bot, req) {
   use <- telega_wisp.handle_bot(req, bot)
@@ -38,7 +39,7 @@ pub fn main() {
     |> telega.init_nil_session
 
   let assert Ok(_) =
-    wisp.mist_handler(handle_request(bot, _), wisp.random_string(64))
+    wisp_mist.handler(handle_request(bot, _), wisp.random_string(64))
     |> mist.new
     |> mist.port(8000)
     |> mist.start_http
