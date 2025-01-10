@@ -701,6 +701,10 @@ pub type SendMessageParameters {
     disable_notification: Option(Bool),
     /// Protects the contents of the sent message from forwarding and saving
     protect_content: Option(Bool),
+    ///  Pass True to allow up to 1000 messages per second, ignoring broadcasting limits for a fee of 0.1 Telegram Stars per message. The relevant Stars will be withdrawn from the bot's balance
+    allow_paid_broadcast: Option(Bool),
+    /// Unique identifier of the message effect to be added to the message; for private chats only
+    message_effect_id: Option(String),
     /// Description of the message to reply to
     reply_parameters: Option(ReplyParameters),
     /// Additional interface options. A JSON-serialized object for an [inline keyboard](https://core.telegram.org/bots/features#inline-keyboards), [custom reply keyboard](https://core.telegram.org/bots/features#keyboards), instructions to remove a reply keyboard or to force a reply from the user. Not supported for messages sent on behalf of a business account
@@ -722,6 +726,8 @@ pub fn new_send_message_parameters(
     link_preview_options: None,
     disable_notification: None,
     protect_content: None,
+    allow_paid_broadcast: None,
+    message_effect_id: None,
     reply_parameters: None,
     reply_markup: None,
   )
@@ -777,6 +783,14 @@ pub fn encode_send_message_parameters(
     "protect_content",
     json.nullable(send_message_parameters.protect_content, json.bool),
   )
+  let allow_paid_broadcast = #(
+    "allow_paid_broadcast",
+    json.nullable(send_message_parameters.allow_paid_broadcast, json.bool),
+  )
+  let message_effect_id = #(
+    "message_effect_id",
+    json.nullable(send_message_parameters.message_effect_id, json.string),
+  )
   let reply_parameters = #(
     "reply_parameters",
     json.nullable(
@@ -799,6 +813,8 @@ pub fn encode_send_message_parameters(
     link_preview_options,
     disable_notification,
     protect_content,
+    allow_paid_broadcast,
+    message_effect_id,
     reply_parameters,
     reply_markup,
   ])
