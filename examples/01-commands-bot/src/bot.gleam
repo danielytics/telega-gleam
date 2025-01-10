@@ -48,18 +48,28 @@ fn dice_command_handler(ctx: NilContext, _) -> Result(Nil, String) {
   |> result.map(fn(_) { Nil })
 }
 
+fn poll_command_handler(ctx: NilContext, _) -> Result(Nil, String) {
+  use <- telega.log_context(ctx, "poll")
+
+  reply.with_poll(ctx, "What is your favorite color?", ["Red", "Green", "Blue"])
+  |> result.map(fn(_) { Nil })
+}
+
 fn start_command_handler(ctx: NilContext, _) -> Result(Nil, String) {
   use <- telega.log_context(ctx, "start")
 
   telega_api.set_my_commands(
     ctx.config.api,
-    telega_model.bot_commands_from([#("/dice", "Roll a dice")]),
+    telega_model.bot_commands_from([
+      #("/dice", "Roll a dice"),
+      #("/poll", "Start a poll"),
+    ]),
     None,
   )
   |> result.then(fn(_) {
     reply.with_text(
       ctx,
-      "Hello! I'm a dice bot. You can roll a dice by sending /dice command.",
+      "Hello! I'm a dice bot. You can roll a dice by sending /dice command or start a poll by sending the /poll command.",
     )
     |> result.map(fn(_) { Nil })
   })
@@ -73,6 +83,7 @@ fn build_bot() {
 
   telega.new(token:, url:, webhook_path:, secret_token: Some(secret_token))
   |> telega.handle_command("dice", dice_command_handler)
+  |> telega.handle_command("poll", poll_command_handler)
   |> telega.handle_command("start", start_command_handler)
   |> telega.init_nil_session
 }

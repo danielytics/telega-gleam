@@ -251,6 +251,25 @@ pub fn send_dice(
   |> map_resonse(model.decode_message)
 }
 
+///  Use this method to send a native poll.
+///
+/// **Official reference:** https://core.telegram.org/bots/api#sendpoll
+pub fn send_poll(
+  config config: TelegramApiConfig,
+  parameters parameters: model.SendPollParameters,
+) -> Result(ModelMessage, String) {
+  let body_json = model.encode_send_poll_parameters(parameters)
+
+  new_post_request(
+    config,
+    path: "sendPoll",
+    body: json.to_string(body_json),
+    query: None,
+  )
+  |> fetch(config)
+  |> map_resonse(model.decode_message)
+}
+
 /// A simple method for testing your bot's authentication token.
 ///
 /// **Official reference:** https://core.telegram.org/bots/api#getme

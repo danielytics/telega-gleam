@@ -58,6 +58,24 @@ pub fn with_dice(
   api.send_dice(ctx.config.api, parameters)
 }
 
+///  Use this method to send a native poll.
+///
+/// **Official reference:** https://core.telegram.org/bots/api#sendpoll
+pub fn with_poll(
+  ctx ctx: Context(session),
+  question question: String,
+  options options: List(String),
+) {
+  api.send_poll(
+    ctx.config.api,
+    parameters: model.new_send_poll_parameters(
+      question:,
+      options:,
+      chat_id: model.Stringed(ctx.key),
+    ),
+  )
+}
+
 /// Use this method to edit text and game messages.
 /// On success, if the edited message is not an inline message, the edited Message is returned, otherwise True is returned.
 ///

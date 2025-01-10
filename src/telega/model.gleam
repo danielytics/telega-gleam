@@ -820,6 +820,266 @@ pub fn encode_send_message_parameters(
   ])
 }
 
+// InputPollOption --------------------------------------------------------------------
+
+pub type InputPollOption {
+  InputPollOption(
+    /// Option text, 1-100 characters
+    text: String,
+    /// Mode for parsing entities in the text. See [formatting options](https://core.telegram.org/bots/api#formatting-options) for more details.
+    text_parse_mode: Option(String),
+    /// A JSON-serialized list of special entities that appear in the poll option text. It can be specified instead of text_parse_mode
+    text_entities: Option(List(MessageEntity)),
+  )
+}
+
+pub fn encode_input_poll_option(input_poll_option: InputPollOption) -> Json {
+  let text = #("text", json.string(input_poll_option.text))
+  let text_parse_mode = #(
+    "text_parse_mode",
+    json.nullable(input_poll_option.text_parse_mode, json.string),
+  )
+  let text_entities = #(
+    "text_entities",
+    json.nullable(input_poll_option.text_entities, json.array(
+      _,
+      encode_message_entity,
+    )),
+  )
+
+  json_object_filter_nulls([text, text_parse_mode, text_entities])
+}
+
+// SendPoll ---------------------------------------------------------------------------
+
+pub type PollType {
+  Quiz
+  Regular
+}
+
+pub type SendPollParameters {
+  SendPollParameters(
+    /// Unique identifier of the business connection on behalf of which the message will be sent
+    business_connection_id: Option(String),
+    /// Unique identifier for the target chat or username of the target channel (in the format `@channelusername`)
+    chat_id: IntOrString,
+    /// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+    message_thread_id: Option(Int),
+    /// Poll question, 1-300 characters
+    question: String,
+    /// Mode for parsing entities in the question. See [formatting options](https://core.telegram.org/bots/api#formatting-options) for more details. Currently, only custom emoji entities are allowed
+    question_parse_mode: Option(String),
+    /// A JSON-serialized list of special entities that appear in the poll question. It can be specified instead of question_parse_mode
+    question_entities: Option(List(MessageEntity)),
+    /// A JSON-serialized list of 2-10 answer options
+    options: List(InputPollOption),
+    /// True, if the poll needs to be anonymous, defaults to True
+    is_anonymous: Option(Bool),
+    /// Poll type, “quiz” or “regular”, defaults to “regular”
+    poll_type: Option(PollType),
+    /// True, if the poll allows multiple answers, ignored for polls in quiz mode, defaults to False
+    allows_multiple_answers: Option(Bool),
+    /// 0-based identifier of the correct answer option, required for polls in quiz mode
+    correct_option_id: Option(Int),
+    /// Text that is shown when a user chooses an incorrect answer or taps on the lamp icon in a quiz-style poll, 0-200 characters with at most 2 line feeds after entities parsing
+    explanation: Option(String),
+    /// Mode for parsing entities in the explanation. See formatting options for more details
+    explanation_parse_mode: Option(String),
+    /// A JSON-serialized list of special entities that appear in the poll explanation. It can be specified instead of explanation_parse_mode
+    explanation_entities: Option(List(MessageEntity)),
+    /// Amount of time in seconds the poll will be active after creation, 5-600. Can't be used together with close_date
+    open_period: Option(Int),
+    /// Point in time (Unix timestamp) when the poll will be automatically closed. Must be at least 5 and no more than 600 seconds in the future. Can't be used together with open_period
+    close_date: Option(Int),
+    /// Pass True if the poll needs to be immediately closed. This can be useful for poll preview
+    is_closed: Option(Bool),
+    /// Sends the message silently. Users will receive a notification with no sound
+    disable_notification: Option(Bool),
+    /// Protects the contents of the sent message from forwarding and saving
+    protect_content: Option(Bool),
+    /// Pass True to allow up to 1000 messages per second, ignoring broadcasting limits for a fee of 0.1 Telegram Stars per message. The relevant Stars will be withdrawn from the bot's balance
+    allow_paid_broadcast: Option(Bool),
+    /// Unique identifier of the message effect to be added to the message; for private chats only
+    message_effect_id: Option(String),
+    /// Description of the message to reply to
+    reply_parameters: Option(ReplyParameters),
+    /// Additional interface options. A JSON-serialized object for an [inline keyboard](https://core.telegram.org/bots/features#inline-keyboards), [custom reply keyboard](https://core.telegram.org/bots/features#keyboards), instructions to remove a reply keyboard or to force a reply from the user. Not supported for messages sent on behalf of a business account
+    reply_markup: Option(ReplyMarkup),
+  )
+}
+
+pub fn new_send_poll_parameters(
+  chat_id chat_id: IntOrString,
+  question question: String,
+  options options: List(String),
+) -> SendPollParameters {
+  SendPollParameters(
+    business_connection_id: None,
+    chat_id: chat_id,
+    message_thread_id: None,
+    question: question,
+    question_parse_mode: None,
+    question_entities: None,
+    options: list.map(options, fn(option_text) {
+      InputPollOption(
+        text: option_text,
+        text_parse_mode: None,
+        text_entities: None,
+      )
+    }),
+    poll_type: None,
+    is_anonymous: None,
+    allows_multiple_answers: None,
+    correct_option_id: None,
+    explanation: None,
+    explanation_parse_mode: None,
+    explanation_entities: None,
+    open_period: None,
+    close_date: None,
+    is_closed: None,
+    disable_notification: None,
+    protect_content: None,
+    allow_paid_broadcast: None,
+    message_effect_id: None,
+    reply_parameters: None,
+    reply_markup: None,
+  )
+}
+
+pub fn encode_send_poll_parameters(
+  send_poll_parameters: SendPollParameters,
+) -> Json {
+  let business_connection_id = #(
+    "business_connection_id",
+    json.nullable(send_poll_parameters.business_connection_id, json.string),
+  )
+  let chat_id = #("chat_id", encode_int_or_string(send_poll_parameters.chat_id))
+  let message_thread_id = #(
+    "message_thread_id",
+    json.nullable(send_poll_parameters.message_thread_id, json.int),
+  )
+  let question = #("question", json.string(send_poll_parameters.question))
+  let question_parse_mode = #(
+    "question_parse_mode",
+    json.nullable(send_poll_parameters.question_parse_mode, json.string),
+  )
+  let question_entities = #(
+    "question_entities",
+    json.nullable(send_poll_parameters.question_entities, json.array(
+      _,
+      encode_message_entity,
+    )),
+  )
+  let options = #(
+    "options",
+    json.array(send_poll_parameters.options, encode_input_poll_option),
+  )
+  let is_anonymous = #(
+    "is_anonymous",
+    json.nullable(send_poll_parameters.is_anonymous, json.bool),
+  )
+  let poll_type = #(
+    "type",
+    json.nullable(
+      option.map(send_poll_parameters.poll_type, fn(poll_type) {
+        case poll_type {
+          Quiz -> "quiz"
+          Regular -> "regular"
+        }
+      }),
+      json.string,
+    ),
+  )
+  let allow_multiple_answers = #(
+    "allow_multiple_answers",
+    json.nullable(send_poll_parameters.allows_multiple_answers, json.bool),
+  )
+  let correct_option_id = #(
+    "correct_option_id",
+    json.nullable(send_poll_parameters.correct_option_id, json.int),
+  )
+  let explanation = #(
+    "explanation",
+    json.nullable(send_poll_parameters.explanation, json.string),
+  )
+  let explanation_parse_mode = #(
+    "explanation_parse_mode",
+    json.nullable(send_poll_parameters.explanation_parse_mode, json.string),
+  )
+  let explanation_entities = #(
+    "explanation_entities",
+    json.nullable(send_poll_parameters.explanation_entities, json.array(
+      _,
+      encode_message_entity,
+    )),
+  )
+  let open_period = #(
+    "open_period",
+    json.nullable(send_poll_parameters.open_period, json.int),
+  )
+  let close_date = #(
+    "close_date",
+    json.nullable(send_poll_parameters.close_date, json.int),
+  )
+  let is_closed = #(
+    "is_closed",
+    json.nullable(send_poll_parameters.is_closed, json.bool),
+  )
+  let disable_notification = #(
+    "disable_notification",
+    json.nullable(send_poll_parameters.disable_notification, json.bool),
+  )
+  let protect_content = #(
+    "protect_content",
+    json.nullable(send_poll_parameters.protect_content, json.bool),
+  )
+  let allow_paid_broadcast = #(
+    "allow_paid_broadcast",
+    json.nullable(send_poll_parameters.allow_paid_broadcast, json.bool),
+  )
+  let message_effect_id = #(
+    "message_effect_id",
+    json.nullable(send_poll_parameters.message_effect_id, json.string),
+  )
+  let reply_parameters = #(
+    "reply_parameters",
+    json.nullable(
+      send_poll_parameters.reply_parameters,
+      encode_reply_parameters,
+    ),
+  )
+  let reply_markup = #(
+    "reply_markup",
+    json.nullable(send_poll_parameters.reply_markup, encode_reply_markup),
+  )
+
+  json_object_filter_nulls([
+    business_connection_id,
+    chat_id,
+    message_thread_id,
+    question_entities,
+    question,
+    question_parse_mode,
+    options,
+    is_anonymous,
+    poll_type,
+    allow_multiple_answers,
+    correct_option_id,
+    explanation,
+    explanation_parse_mode,
+    explanation_entities,
+    open_period,
+    close_date,
+    is_closed,
+    disable_notification,
+    protect_content,
+    allow_paid_broadcast,
+    message_effect_id,
+    reply_parameters,
+    reply_markup,
+  ])
+}
+
 // InlineKeyboard ---------------------------------------------------------------------
 
 pub type InlineKeyboardButton {
