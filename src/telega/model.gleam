@@ -2368,6 +2368,281 @@ pub fn encode_forward_message_parameters(
   ])
 }
 
+// SendInvoice ---------------------------------------------------------------------------
+
+pub type LabeledPrice {
+  LabeledPrice(label: String, amount: Int)
+}
+
+pub fn encode_labeled_price(labeled_price labeled_price: LabeledPrice) -> Json {
+  json_object_filter_nulls([
+    #("label", json.string(labeled_price.label)),
+    #("amount", json.int(labeled_price.amount)),
+  ])
+}
+
+pub type SendInvoiceParameters {
+  SendInvoiceParameters(
+    /// Unique identifier for the target chat or username of the target channel (in the format `@channelusername`)
+    chat_id: IntOrString,
+    /// Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+    message_thread_id: Option(Int),
+    /// Product name, 1-32 characters
+    title: String,
+    /// Product description, 1-255 characters
+    description: String,
+    /// Bot-defined invoice payload, 1-128 bytes. This will not be displayed to the user, use it for your internal processes
+    payload: String,
+    /// Payment provider token, obtained via @BotFather. Pass an empty string for payments in Telegram Stars
+    provider_token: Option(String),
+    /// Three-letter ISO 4217 currency code, see more on currencies. Pass “XTR” for payments in Telegram Stars
+    currency: String,
+    /// Price breakdown, a JSON-serialized list of components. Must contain exactly one item for payments in Telegram Stars
+    prices: List(LabeledPrice),
+    /// The maximum accepted amount for tips in the smallest units of the currency. Defaults to 0. Not supported for payments in Telegram Stars
+    max_tip_amount: Option(Int),
+    /// A JSON-serialized array of suggested amounts of tips in the smallest units of the currency. At most 4 suggested tip amounts can be specified
+    suggested_tip_amounts: Option(List(Int)),
+    /// Unique deep-linking parameter. If non-empty, forwarded copies will have a URL button with a deep link to the bot
+    start_parameter: Option(String),
+    /// JSON-serialized data about the invoice, which will be shared with the payment provider
+    provider_data: Option(String),
+    /// URL of the product photo for the invoice
+    photo_url: Option(String),
+    /// Photo size in bytes
+    photo_size: Option(Int),
+    /// Photo width
+    photo_width: Option(Int),
+    /// Photo height
+    photo_height: Option(Int),
+    /// Pass True if you require the user's full name to complete the order. Ignored for payments in Telegram Stars
+    need_name: Option(Bool),
+    /// Pass True if you require the user's phone number to complete the order. Ignored for payments in Telegram Stars
+    need_phone_number: Option(Bool),
+    /// Pass True if you require the user's email address to complete the order. Ignored for payments in Telegram Stars
+    need_email: Option(Bool),
+    /// Pass True if you require the user's shipping address to complete the order. Ignored for payments in Telegram Stars
+    need_shipping_address: Option(Bool),
+    /// Pass True if the user's phone number should be sent to the provider. Ignored for payments in Telegram Stars
+    send_phone_number_to_provider: Option(Bool),
+    /// Pass True if the user's email address should be sent to the provider. Ignored for payments in Telegram Stars
+    send_email_to_provider: Option(Bool),
+    /// Pass True if the final price depends on the shipping method. Ignored for payments in Telegram Stars
+    is_flexible: Option(Bool),
+    /// Sends the message silently. Users will receive a notification with no sound
+    disable_notification: Option(Bool),
+    /// Protects the contents of the sent message from forwarding and saving
+    protect_content: Option(Bool),
+    /// Pass True to allow up to 1000 messages per second, ignoring broadcasting limits for a fee of 0.1 Telegram Stars per message
+    allow_paid_broadcast: Option(Bool),
+    /// Unique identifier of the message effect to be added to the message; for private chats only
+    message_effect_id: Option(String),
+    /// Description of the message to reply to
+    reply_parameters: Option(ReplyParameters),
+    /// A JSON-serialized object for an inline keyboard. If empty, one 'Pay total price' button will be shown
+    reply_markup: Option(InlineKeyboardMarkup),
+  )
+}
+
+pub fn new_send_invoice_parameters(
+  chat_id chat_id: IntOrString,
+  title title: String,
+  description description: String,
+  payload payload: String,
+  currency currency: String,
+  prices prices: List(#(String, Int)),
+) -> SendInvoiceParameters {
+  SendInvoiceParameters(
+    chat_id: chat_id,
+    message_thread_id: None,
+    title: title,
+    description: description,
+    payload: payload,
+    provider_token: None,
+    currency: currency,
+    prices: list.map(prices, fn(price) {
+      LabeledPrice(label: price.0, amount: price.1)
+    }),
+    max_tip_amount: None,
+    suggested_tip_amounts: None,
+    start_parameter: None,
+    provider_data: None,
+    photo_url: None,
+    photo_size: None,
+    photo_width: None,
+    photo_height: None,
+    need_name: None,
+    need_phone_number: None,
+    need_email: None,
+    need_shipping_address: None,
+    send_phone_number_to_provider: None,
+    send_email_to_provider: None,
+    is_flexible: None,
+    disable_notification: None,
+    protect_content: None,
+    allow_paid_broadcast: None,
+    message_effect_id: None,
+    reply_parameters: None,
+    reply_markup: None,
+  )
+}
+
+pub fn encode_send_invoice_parameters(
+  send_invoice_parameters: SendInvoiceParameters,
+) -> Json {
+  let chat_id = #(
+    "chat_id",
+    encode_int_or_string(send_invoice_parameters.chat_id),
+  )
+  let message_thread_id = #(
+    "message_thread_id",
+    json.nullable(send_invoice_parameters.message_thread_id, json.int),
+  )
+  let title = #("title", json.string(send_invoice_parameters.title))
+  let description = #(
+    "description",
+    json.string(send_invoice_parameters.description),
+  )
+  let payload = #("payload", json.string(send_invoice_parameters.payload))
+  let provider_token = #(
+    "provider_token",
+    json.nullable(send_invoice_parameters.provider_token, json.string),
+  )
+  let currency = #("currency", json.string(send_invoice_parameters.currency))
+  let prices = #(
+    "prices",
+    json.array(send_invoice_parameters.prices, encode_labeled_price),
+  )
+  let max_tip_amount = #(
+    "max_tip_amount",
+    json.nullable(send_invoice_parameters.max_tip_amount, json.int),
+  )
+  let suggested_tip_amounts = #(
+    "suggested_tip_amounts",
+    json.nullable(send_invoice_parameters.suggested_tip_amounts, json.array(
+      _,
+      json.int,
+    )),
+  )
+  let start_parameter = #(
+    "start_parameter",
+    json.nullable(send_invoice_parameters.start_parameter, json.string),
+  )
+  let provider_data = #(
+    "provider_data",
+    json.nullable(send_invoice_parameters.provider_data, json.string),
+  )
+  let photo_url = #(
+    "photo_url",
+    json.nullable(send_invoice_parameters.photo_url, json.string),
+  )
+  let photo_size = #(
+    "photo_size",
+    json.nullable(send_invoice_parameters.photo_size, json.int),
+  )
+  let photo_width = #(
+    "photo_width",
+    json.nullable(send_invoice_parameters.photo_width, json.int),
+  )
+  let photo_height = #(
+    "photo_height",
+    json.nullable(send_invoice_parameters.photo_height, json.int),
+  )
+  let need_name = #(
+    "need_name",
+    json.nullable(send_invoice_parameters.need_name, json.bool),
+  )
+  let need_phone_number = #(
+    "need_phone_number",
+    json.nullable(send_invoice_parameters.need_phone_number, json.bool),
+  )
+  let need_email = #(
+    "need_email",
+    json.nullable(send_invoice_parameters.need_email, json.bool),
+  )
+  let need_shipping_address = #(
+    "need_shipping_address",
+    json.nullable(send_invoice_parameters.need_shipping_address, json.bool),
+  )
+  let send_phone_number_to_provider = #(
+    "send_phone_number_to_provider",
+    json.nullable(
+      send_invoice_parameters.send_phone_number_to_provider,
+      json.bool,
+    ),
+  )
+  let send_email_to_provider = #(
+    "send_email_to_provider",
+    json.nullable(send_invoice_parameters.send_email_to_provider, json.bool),
+  )
+  let is_flexible = #(
+    "is_flexible",
+    json.nullable(send_invoice_parameters.is_flexible, json.bool),
+  )
+  let disable_notification = #(
+    "disable_notification",
+    json.nullable(send_invoice_parameters.disable_notification, json.bool),
+  )
+  let protect_content = #(
+    "protect_content",
+    json.nullable(send_invoice_parameters.protect_content, json.bool),
+  )
+  let allow_paid_broadcast = #(
+    "allow_paid_broadcast",
+    json.nullable(send_invoice_parameters.allow_paid_broadcast, json.bool),
+  )
+  let message_effect_id = #(
+    "message_effect_id",
+    json.nullable(send_invoice_parameters.message_effect_id, json.string),
+  )
+  let reply_parameters = #(
+    "reply_parameters",
+    json.nullable(
+      send_invoice_parameters.reply_parameters,
+      encode_reply_parameters,
+    ),
+  )
+  let reply_markup = #(
+    "reply_markup",
+    json.nullable(
+      send_invoice_parameters.reply_markup,
+      encode_inline_keyboard_markup,
+    ),
+  )
+
+  json_object_filter_nulls([
+    chat_id,
+    message_thread_id,
+    title,
+    description,
+    payload,
+    provider_token,
+    currency,
+    prices,
+    max_tip_amount,
+    suggested_tip_amounts,
+    start_parameter,
+    provider_data,
+    photo_url,
+    photo_size,
+    photo_width,
+    photo_height,
+    need_name,
+    need_phone_number,
+    need_email,
+    need_shipping_address,
+    send_phone_number_to_provider,
+    send_email_to_provider,
+    is_flexible,
+    disable_notification,
+    protect_content,
+    allow_paid_broadcast,
+    message_effect_id,
+    reply_parameters,
+    reply_markup,
+  ])
+}
+
 // AnswerCallbackQueryParameters --------------------------------------------------------------------------------------
 // https://core.telegram.org/bots/api#answercallbackquery
 pub type AnswerCallbackQueryParameters {

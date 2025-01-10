@@ -270,6 +270,25 @@ pub fn send_poll(
   |> map_resonse(model.decode_message)
 }
 
+/// Use this method to send invoices.
+///
+/// **Official reference:** https://core.telegram.org/bots/api#sendinvoice
+pub fn send_invoice(
+  config config: TelegramApiConfig,
+  parameters parameters: model.SendInvoiceParameters,
+) -> Result(ModelMessage, String) {
+  let body_json = model.encode_send_invoice_parameters(parameters)
+
+  new_post_request(
+    config,
+    path: "sendInvoice",
+    body: json.to_string(body_json),
+    query: None,
+  )
+  |> fetch(config)
+  |> map_resonse(model.decode_message)
+}
+
 /// A simple method for testing your bot's authentication token.
 ///
 /// **Official reference:** https://core.telegram.org/bots/api#getme

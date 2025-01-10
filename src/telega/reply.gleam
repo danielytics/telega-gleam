@@ -76,6 +76,30 @@ pub fn with_poll(
   )
 }
 
+/// Use this method to send invoices.
+///
+/// **Official reference:** https://core.telegram.org/bots/api#sendinvoice
+pub fn with_invoice(
+  ctx ctx: Context(session),
+  title title: String,
+  description description: String,
+  payload payload: String,
+  currency currency: String,
+  prices prices: List(#(String, Int)),
+) {
+  api.send_invoice(
+    ctx.config.api,
+    parameters: model.new_send_invoice_parameters(
+      title: title,
+      description: description,
+      payload: payload,
+      currency: currency,
+      prices: prices,
+      chat_id: model.Stringed(ctx.key),
+    ),
+  )
+}
+
 /// Use this method to edit text and game messages.
 /// On success, if the edited message is not an inline message, the edited Message is returned, otherwise True is returned.
 ///
