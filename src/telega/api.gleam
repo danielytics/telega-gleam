@@ -289,6 +289,25 @@ pub fn send_invoice(
   |> map_resonse(model.decode_message)
 }
 
+/// Use this method to create a link for an invoice.
+///
+/// **Official reference:** https://core.telegram.org/bots/api#createinvoicelink
+pub fn create_invoice_link(
+  config config: TelegramApiConfig,
+  parameters parameters: model.CreateInvoiceLinkParameters,
+) -> Result(String, String) {
+  let body_json = model.encode_create_invoice_link_parameters(parameters)
+
+  new_post_request(
+    config,
+    path: "createInvoiceLink",
+    body: json.to_string(body_json),
+    query: None,
+  )
+  |> fetch(config)
+  |> map_resonse(dynamic.string)
+}
+
 /// A simple method for testing your bot's authentication token.
 ///
 /// **Official reference:** https://core.telegram.org/bots/api#getme

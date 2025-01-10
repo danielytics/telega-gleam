@@ -293,3 +293,7 @@ pub fn handle_update(
     HandleBotRegistryMessage(update: update),
   ))
 }
+
+pub fn get_api_config(telega: Telega(session)) -> api.TelegramApiConfig {
+  telega.config.api
+}

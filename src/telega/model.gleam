@@ -2643,6 +2643,222 @@ pub fn encode_send_invoice_parameters(
   ])
 }
 
+// CreateInvoiceLink ---------------------------------------------------------------------------
+
+pub type CreateInvoiceLinkParameters {
+  CreateInvoiceLinkParameters(
+    /// Unique identifier of the business connection on behalf of which the link will be created. For payments in Telegram Stars only.
+    business_connection_id: Option(String),
+    /// Product name, 1-32 characters
+    title: String,
+    /// Product description, 1-255 characters
+    description: String,
+    /// Bot-defined invoice payload, 1-128 bytes. This will not be displayed to the user, use it for your internal processes
+    payload: String,
+    /// Payment provider token, obtained via @BotFather. Pass an empty string for payments in Telegram Stars
+    provider_token: Option(String),
+    /// Three-letter ISO 4217 currency code, see more on currencies. Pass “XTR” for payments in Telegram Stars
+    currency: String,
+    /// Price breakdown, a JSON-serialized list of components (e.g. product price, tax, discount, delivery cost, delivery tax, bonus, etc.). Must contain exactly one item for payments in Telegram Stars
+    prices: List(LabeledPrice),
+    /// The number of seconds the subscription will be active for before the next payment. The currency must be set to “XTR” (Telegram Stars) if the parameter is used. Currently, it must always be 2592000 (30 days) if specified. Any number of subscriptions can be active for a given bot at the same time, including multiple concurrent subscriptions from the same user. Subscription price must not exceed 2500 Telegram Stars
+    subscription_period: Option(Int),
+    /// The maximum accepted amount for tips in the smallest units of the currency. Defaults to 0. Not supported for payments in Telegram Stars
+    max_tip_amount: Option(Int),
+    /// A JSON-serialized array of suggested amounts of tips in the smallest units of the currency. At most 4 suggested tip amounts can be specified
+    suggested_tip_amounts: Option(List(Int)),
+    /// JSON-serialized data about the invoice, which will be shared with the payment provider
+    provider_data: Option(String),
+    /// URL of the product photo for the invoice. Can be a photo of the goods or a marketing image for a service
+    photo_url: Option(String),
+    /// Photo size in bytes
+    photo_size: Option(Int),
+    /// Photo width
+    photo_width: Option(Int),
+    /// Photo height
+    photo_height: Option(Int),
+    /// Pass True if you require the user's full name to complete the order. Ignored for payments in Telegram Stars
+    need_name: Option(Bool),
+    /// Pass True if you require the user's phone number to complete the order. Ignored for payments in Telegram Stars
+    need_phone_number: Option(Bool),
+    /// Pass True if you require the user's email address to complete the order. Ignored for payments in Telegram Stars
+    need_email: Option(Bool),
+    /// Pass True if you require the user's shipping address to complete the order. Ignored for payments in Telegram Stars
+    need_shipping_address: Option(Bool),
+    /// Pass True if the user's phone number should be sent to the provider. Ignored for payments in Telegram Stars
+    send_phone_number_to_provider: Option(Bool),
+    /// Pass True if the user's email address should be sent to the provider. Ignored for payments in Telegram Stars
+    send_email_to_provider: Option(Bool),
+    /// Pass True if the final price depends on the shipping method. Ignored for payments in Telegram Stars
+    is_flexible: Option(Bool),
+  )
+}
+
+pub fn new_create_invoice_link_parameters(
+  title title: String,
+  description description: String,
+  payload payload: String,
+  currency currency: String,
+  prices prices: List(#(String, Int)),
+) -> CreateInvoiceLinkParameters {
+  CreateInvoiceLinkParameters(
+    business_connection_id: None,
+    title: title,
+    description: description,
+    payload: payload,
+    provider_token: None,
+    currency: currency,
+    prices: list.map(prices, fn(price) {
+      LabeledPrice(label: price.0, amount: price.1)
+    }),
+    subscription_period: None,
+    max_tip_amount: None,
+    suggested_tip_amounts: None,
+    provider_data: None,
+    photo_url: None,
+    photo_size: None,
+    photo_width: None,
+    photo_height: None,
+    need_name: None,
+    need_phone_number: None,
+    need_email: None,
+    need_shipping_address: None,
+    send_phone_number_to_provider: None,
+    send_email_to_provider: None,
+    is_flexible: None,
+  )
+}
+
+pub fn encode_create_invoice_link_parameters(
+  create_invoice_link_parameters: CreateInvoiceLinkParameters,
+) -> Json {
+  let business_connection_id = #(
+    "business_connection_id",
+    json.nullable(
+      create_invoice_link_parameters.business_connection_id,
+      json.string,
+    ),
+  )
+  let title = #("title", json.string(create_invoice_link_parameters.title))
+  let description = #(
+    "description",
+    json.string(create_invoice_link_parameters.description),
+  )
+  let payload = #(
+    "payload",
+    json.string(create_invoice_link_parameters.payload),
+  )
+  let provider_token = #(
+    "provider_token",
+    json.nullable(create_invoice_link_parameters.provider_token, json.string),
+  )
+  let currency = #(
+    "currency",
+    json.string(create_invoice_link_parameters.currency),
+  )
+  let prices = #(
+    "prices",
+    json.array(create_invoice_link_parameters.prices, encode_labeled_price),
+  )
+  let subscription_period = #(
+    "subscription_period",
+    json.nullable(create_invoice_link_parameters.subscription_period, json.int),
+  )
+  let max_tip_amount = #(
+    "max_tip_amount",
+    json.nullable(create_invoice_link_parameters.max_tip_amount, json.int),
+  )
+  let suggested_tip_amounts = #(
+    "suggested_tip_amounts",
+    json.nullable(
+      create_invoice_link_parameters.suggested_tip_amounts,
+      json.array(_, json.int),
+    ),
+  )
+  let provider_data = #(
+    "provider_data",
+    json.nullable(create_invoice_link_parameters.provider_data, json.string),
+  )
+  let photo_url = #(
+    "photo_url",
+    json.nullable(create_invoice_link_parameters.photo_url, json.string),
+  )
+  let photo_size = #(
+    "photo_size",
+    json.nullable(create_invoice_link_parameters.photo_size, json.int),
+  )
+  let photo_width = #(
+    "photo_width",
+    json.nullable(create_invoice_link_parameters.photo_width, json.int),
+  )
+  let photo_height = #(
+    "photo_height",
+    json.nullable(create_invoice_link_parameters.photo_height, json.int),
+  )
+  let need_name = #(
+    "need_name",
+    json.nullable(create_invoice_link_parameters.need_name, json.bool),
+  )
+  let need_phone_number = #(
+    "need_phone_number",
+    json.nullable(create_invoice_link_parameters.need_phone_number, json.bool),
+  )
+  let need_email = #(
+    "need_email",
+    json.nullable(create_invoice_link_parameters.need_email, json.bool),
+  )
+  let need_shipping_address = #(
+    "need_shipping_address",
+    json.nullable(
+      create_invoice_link_parameters.need_shipping_address,
+      json.bool,
+    ),
+  )
+  let send_phone_number_to_provider = #(
+    "send_phone_number_to_provider",
+    json.nullable(
+      create_invoice_link_parameters.send_phone_number_to_provider,
+      json.bool,
+    ),
+  )
+  let send_email_to_provider = #(
+    "send_email_to_provider",
+    json.nullable(
+      create_invoice_link_parameters.send_email_to_provider,
+      json.bool,
+    ),
+  )
+  let is_flexible = #(
+    "is_flexible",
+    json.nullable(create_invoice_link_parameters.is_flexible, json.bool),
+  )
+
+  json_object_filter_nulls([
+    business_connection_id,
+    title,
+    description,
+    payload,
+    provider_token,
+    currency,
+    prices,
+    subscription_period,
+    max_tip_amount,
+    suggested_tip_amounts,
+    provider_data,
+    photo_url,
+    photo_size,
+    photo_width,
+    photo_height,
+    need_name,
+    need_phone_number,
+    need_email,
+    need_shipping_address,
+    send_phone_number_to_provider,
+    send_email_to_provider,
+    is_flexible,
+  ])
+}
+
 // AnswerCallbackQueryParameters --------------------------------------------------------------------------------------
 // https://core.telegram.org/bots/api#answercallbackquery
 pub type AnswerCallbackQueryParameters {
