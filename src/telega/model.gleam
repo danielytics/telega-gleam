@@ -21,18 +21,27 @@ pub type Update {
     edited_message: Option(Message),
     /// New incoming callback query
     callback_query: Option(CallbackQuery),
+    /// New poll state. Bots receive only updates about manually stopped polls and polls, which are sent by the bot
+    poll: Option(Poll),
+    /// A user changed their answer in a non-anonymous poll. Bots receive new votes only in polls that were sent by the bot itself.
+    poll_answer: Option(PollAnswer),
+    /// New incoming pre-checkout query. Contains full information about checkout
+    pre_checkout_query: Option(PreCheckoutQuery),
   )
 }
 
 /// Decode a message from the Telegram API.
 pub fn decode_update(json: Dynamic) -> Result(Update, dynamic.DecodeErrors) {
   json
-  |> dynamic.decode4(
+  |> dynamic.decode7(
     Update,
     dynamic.field("update_id", dynamic.int),
     dynamic.optional_field("message", decode_message),
     dynamic.optional_field("edited_message", decode_message),
     dynamic.optional_field("callback_query", decode_callback_query),
+    dynamic.optional_field("poll", decode_poll),
+    dynamic.optional_field("poll_answer", decode_poll_answer),
+    dynamic.optional_field("pre_checkout_query", decode_pre_checkout_query),
   )
 }
 
@@ -153,8 +162,12 @@ pub type Message {
     /// The supergroup has been migrated from a group with the specified identifier.
     migrate_from_chat_id: Option(Int),
     // TODO: pinned_message
-    // TODO: invoice
-    // TODO: successful_payment
+    /// Message is an invoice for a payment, information about the invoice. [More about payments](https://core.telegram.org/bots/api#payments)
+    invoice: Option(Invoice),
+    /// Message is a service message about a successful payment, information about the payment. [More about payments](https://core.telegram.org/bots/api#payments)
+    successful_payment: Option(SuccessfulPayment),
+    /// Message is a service message about a refunded payment, information about the payment. [More about payments](https://core.telegram.org/bots/api#payments)
+    refunded_payment: Option(RefundedPayment),
     // TODO: users_shared
     // TODO: chat_shared
     /// The domain name of the website on which the user has logged in. [More about Telegram Login >>](https://core.telegram.org/widgets/login)
@@ -236,6 +249,11 @@ pub fn decode_message(json: Dynamic) -> Result(Message, dynamic.DecodeErrors) {
     dynamic.optional_field("migrate_to_chat_id", dynamic.int)
   let decode_migrate_from_chat_id =
     dynamic.optional_field("migrate_from_chat_id", dynamic.int)
+  let decode_invoice = dynamic.optional_field("invoice", decode_invoice)
+  let decode_successful_payment =
+    dynamic.optional_field("successful_payment", decode_successful_payment)
+  let decode_refunded_payment =
+    dynamic.optional_field("refunded_payment", decode_refunded_payment)
   let decode_connected_website =
     dynamic.optional_field("connected_website", dynamic.string)
   let decode_inline_keyboard_markup =
@@ -275,6 +293,9 @@ pub fn decode_message(json: Dynamic) -> Result(Message, dynamic.DecodeErrors) {
     decode_channel_chat_created(json),
     decode_migrate_to_chat_id(json),
     decode_migrate_from_chat_id(json),
+    decode_invoice(json),
+    decode_successful_payment(json),
+    decode_refunded_payment(json),
     decode_connected_website(json),
     decode_inline_keyboard_markup(json),
     decode_web_app_data(json),
@@ -309,6 +330,9 @@ pub fn decode_message(json: Dynamic) -> Result(Message, dynamic.DecodeErrors) {
       Ok(channel_chat_created),
       Ok(migrate_to_chat_id),
       Ok(migrate_from_chat_id),
+      Ok(invoice),
+      Ok(successful_payment),
+      Ok(refunded_payment),
       Ok(connected_website),
       Ok(inline_keyboard_markup),
       Ok(web_app_data),
@@ -345,6 +369,9 @@ pub fn decode_message(json: Dynamic) -> Result(Message, dynamic.DecodeErrors) {
         channel_chat_created: channel_chat_created,
         migrate_to_chat_id: migrate_to_chat_id,
         migrate_from_chat_id: migrate_from_chat_id,
+        invoice: invoice,
+        successful_payment: successful_payment,
+        refunded_payment: refunded_payment,
         connected_website: connected_website,
         web_app_data: web_app_data,
         reply_markup: inline_keyboard_markup,
@@ -378,6 +405,9 @@ pub fn decode_message(json: Dynamic) -> Result(Message, dynamic.DecodeErrors) {
       channel_chat_created,
       migrate_to_chat_id,
       migrate_from_chat_id,
+      invoice,
+      successful_payment,
+      refunded_payment,
       connected_website,
       inline_keyboard_markup,
       web_app_data,
@@ -415,6 +445,9 @@ pub fn decode_message(json: Dynamic) -> Result(Message, dynamic.DecodeErrors) {
           all_errors(channel_chat_created),
           all_errors(migrate_to_chat_id),
           all_errors(migrate_from_chat_id),
+          all_errors(invoice),
+          all_errors(successful_payment),
+          all_errors(refunded_payment),
           all_errors(connected_website),
           all_errors(inline_keyboard_markup),
           all_errors(web_app_data),
@@ -3037,4 +3070,474 @@ fn json_object_filter_nulls(entries: List(#(String, Json))) -> Json {
     }
   })
   |> json.object
+}
+
+// Poll ---------------------------------------------------------------------------
+
+pub type Poll {
+  Poll(
+    /// Unique poll identifier
+    id: String,
+    /// Poll question, 1-300 characters
+    question: String,
+    /// Special entities that appear in the question. Currently, only custom emoji entities are allowed in poll questions
+    question_entities: Option(List(MessageEntity)),
+    /// List of poll options
+    options: List(PollOption),
+    /// Total number of users that voted in the poll
+    total_voter_count: Int,
+    /// True, if the poll is closed
+    is_closed: Bool,
+    /// True, if the poll is anonymous
+    is_anonymous: Bool,
+    /// Poll type, currently can be “regular” or “quiz”
+    poll_type: PollType,
+    /// True, if the poll allows multiple answers
+    allows_multiple_answers: Bool,
+    /// 0-based identifier of the correct answer option. Available only for polls in quiz mode, which are closed, or was sent (not forwarded) by the bot or to the private chat with the bot
+    correct_option_id: Option(Int),
+    /// Text that is shown when a user chooses an incorrect answer or taps on the lamp icon in a quiz-style poll, 0-200 characters
+    explanation: Option(String),
+    /// Special entities like usernames, URLs, bot commands, etc. that appear in the explanation
+    explanation_entities: Option(List(MessageEntity)),
+    /// Amount of time in seconds the poll will be active after creation
+    open_period: Option(Int),
+    /// Point in time (Unix timestamp) when the poll will be automatically closed
+    close_date: Option(Int),
+  )
+}
+
+pub fn decode_poll(json: Dynamic) -> Result(Poll, dynamic.DecodeErrors) {
+  let decode_id = dynamic.field("id", dynamic.string)
+  let decode_question = dynamic.field("question", dynamic.string)
+  let decode_question_entities =
+    dynamic.optional_field(
+      "question_entities",
+      dynamic.list(decode_message_entity),
+    )
+  let decode_options =
+    dynamic.field("options", dynamic.list(decode_poll_option))
+  let decode_total_voter_count = dynamic.field("total_voter_count", dynamic.int)
+  let decode_is_closed = dynamic.field("is_closed", dynamic.bool)
+  let decode_is_anonymous = dynamic.field("is_anonymous", dynamic.bool)
+  let decode_type = dynamic.field("type", dynamic.string)
+  let decode_allows_multiple_answers =
+    dynamic.field("allows_multiple_answers", dynamic.bool)
+  let decode_correct_option_id =
+    dynamic.optional_field("correct_option_id", dynamic.int)
+  let decode_explanation = dynamic.optional_field("explanation", dynamic.string)
+  let decode_explanation_entities =
+    dynamic.optional_field(
+      "explanation_entities",
+      dynamic.list(decode_message_entity),
+    )
+  let decode_open_period = dynamic.optional_field("open_period", dynamic.int)
+  let decode_close_date = dynamic.optional_field("close_date", dynamic.int)
+
+  case
+    decode_id(json),
+    decode_question(json),
+    decode_question_entities(json),
+    decode_options(json),
+    decode_total_voter_count(json),
+    decode_is_closed(json),
+    decode_is_anonymous(json),
+    decode_type(json),
+    decode_allows_multiple_answers(json),
+    decode_correct_option_id(json),
+    decode_explanation(json),
+    decode_explanation_entities(json),
+    decode_open_period(json),
+    decode_close_date(json)
+  {
+    Ok(id),
+      Ok(question),
+      Ok(question_entities),
+      Ok(options),
+      Ok(total_voter_count),
+      Ok(is_closed),
+      Ok(is_anonymous),
+      Ok(poll_type),
+      Ok(allows_multiple_answers),
+      Ok(correct_option_id),
+      Ok(explanation),
+      Ok(explanation_entities),
+      Ok(open_period),
+      Ok(close_date)
+    ->
+      Ok(Poll(
+        id: id,
+        question: question,
+        question_entities: question_entities,
+        options: options,
+        total_voter_count: total_voter_count,
+        is_closed: is_closed,
+        is_anonymous: is_anonymous,
+        poll_type: case poll_type {
+          "quiz" -> Quiz
+          _ -> Regular
+        },
+        allows_multiple_answers: allows_multiple_answers,
+        correct_option_id: correct_option_id,
+        explanation: explanation,
+        explanation_entities: explanation_entities,
+        open_period: open_period,
+        close_date: close_date,
+      ))
+    id,
+      question,
+      question_entities,
+      options,
+      total_voter_count,
+      is_closed,
+      is_anonymous,
+      type_,
+      allows_multiple_answers,
+      correct_option_id,
+      explanation,
+      explanation_entities,
+      open_period,
+      close_date
+    ->
+      Error(
+        list.flatten([
+          all_errors(id),
+          all_errors(question),
+          all_errors(question_entities),
+          all_errors(options),
+          all_errors(total_voter_count),
+          all_errors(is_closed),
+          all_errors(is_anonymous),
+          all_errors(type_),
+          all_errors(allows_multiple_answers),
+          all_errors(correct_option_id),
+          all_errors(explanation),
+          all_errors(explanation_entities),
+          all_errors(open_period),
+          all_errors(close_date),
+        ]),
+      )
+  }
+}
+
+// PollOption ---------------------------------------------------------------------------
+
+pub type PollOption {
+  PollOption(
+    /// Option text, 1-100 characters
+    text: String,
+    /// Special entities that appear in the option text. Currently, only custom emoji entities are allowed in poll option texts
+    text_entities: Option(List(MessageEntity)),
+    /// Number of users that voted for this option
+    voter_count: Int,
+  )
+}
+
+pub fn decode_poll_option(
+  json: Dynamic,
+) -> Result(PollOption, dynamic.DecodeErrors) {
+  json
+  |> dynamic.decode3(
+    PollOption,
+    dynamic.field("text", dynamic.string),
+    dynamic.optional_field("text_entities", dynamic.list(decode_message_entity)),
+    dynamic.field("voter_count", dynamic.int),
+  )
+}
+
+// PollAnswer ---------------------------------------------------------------------------
+
+pub type PollAnswer {
+  PollAnswer(
+    /// Unique poll identifier
+    poll_id: String,
+    /// The chat that changed the answer to the poll, if the voter is anonymous
+    voter_chat: Option(Chat),
+    /// The user that changed the answer to the poll, if the voter isn't anonymous
+    user: Option(User),
+    /// 0-based identifiers of chosen answer options. May be empty if the vote was retracted
+    option_ids: List(Int),
+  )
+}
+
+pub fn decode_poll_answer(
+  json: Dynamic,
+) -> Result(PollAnswer, dynamic.DecodeErrors) {
+  json
+  |> dynamic.decode4(
+    PollAnswer,
+    dynamic.field("poll_id", dynamic.string),
+    dynamic.optional_field("voter_chat", decode_chat),
+    dynamic.optional_field("user", decode_user),
+    dynamic.field("option_ids", dynamic.list(dynamic.int)),
+  )
+}
+
+// ShippingAddress ---------------------------------------------------------------------------
+
+pub type ShippingAddress {
+  ShippingAddress(
+    /// Two-letter ISO 3166-1 alpha-2 country code
+    country_code: String,
+    /// State, if applicable
+    state: String,
+    /// City
+    city: String,
+    /// First line for the address
+    street_line1: String,
+    /// Second line for the address
+    street_line2: String,
+    /// Address post code
+    post_code: String,
+  )
+}
+
+pub fn decode_shipping_address(
+  json: Dynamic,
+) -> Result(ShippingAddress, dynamic.DecodeErrors) {
+  json
+  |> dynamic.decode6(
+    ShippingAddress,
+    dynamic.field("country_code", dynamic.string),
+    dynamic.field("state", dynamic.string),
+    dynamic.field("city", dynamic.string),
+    dynamic.field("street_line1", dynamic.string),
+    dynamic.field("street_line2", dynamic.string),
+    dynamic.field("post_code", dynamic.string),
+  )
+}
+
+// OrderInfo ---------------------------------------------------------------------------
+
+pub type OrderInfo {
+  OrderInfo(
+    /// User name
+    name: Option(String),
+    /// User's phone number
+    phone_number: Option(String),
+    /// User email
+    email: Option(String),
+    /// User shipping address
+    shipping_address: Option(ShippingAddress),
+  )
+}
+
+pub fn decode_order_info(
+  json: Dynamic,
+) -> Result(OrderInfo, dynamic.DecodeErrors) {
+  json
+  |> dynamic.decode4(
+    OrderInfo,
+    dynamic.optional_field("name", dynamic.string),
+    dynamic.optional_field("phone_number", dynamic.string),
+    dynamic.optional_field("email", dynamic.string),
+    dynamic.optional_field("shipping_address", decode_shipping_address),
+  )
+}
+
+// PreCheckoutQuery ---------------------------------------------------------------------------
+
+pub type PreCheckoutQuery {
+  PreCheckoutQuery(
+    /// Unique query identifier
+    id: String,
+    /// User who sent the query
+    from: User,
+    /// Three-letter ISO 4217 currency code, or “XTR” for payments in Telegram Stars
+    currency: String,
+    /// Total price in the smallest units of the currency
+    total_amount: Int,
+    /// Bot-specified invoice payload
+    invoice_payload: String,
+    /// Identifier of the shipping option chosen by the user
+    shipping_option_id: Option(String),
+    /// Order information provided by the user
+    order_info: Option(OrderInfo),
+  )
+}
+
+pub fn decode_pre_checkout_query(
+  json: Dynamic,
+) -> Result(PreCheckoutQuery, dynamic.DecodeErrors) {
+  json
+  |> dynamic.decode7(
+    PreCheckoutQuery,
+    dynamic.field("id", dynamic.string),
+    dynamic.field("from", decode_user),
+    dynamic.field("currency", dynamic.string),
+    dynamic.field("total_amount", dynamic.int),
+    dynamic.field("invoice_payload", dynamic.string),
+    dynamic.optional_field("shipping_option_id", dynamic.string),
+    dynamic.optional_field("order_info", decode_order_info),
+  )
+}
+
+// SuccessfulPayment ---------------------------------------------------------------------------
+
+pub type SuccessfulPayment {
+  SuccessfulPayment(
+    /// Three-letter ISO 4217 currency code, or “XTR” for payments in Telegram Stars
+    currency: String,
+    /// Total price in the smallest units of the currency
+    total_amount: Int,
+    /// Bot-specified invoice payload
+    invoice_payload: String,
+    /// Expiration date of the subscription, in Unix time; for recurring payments only
+    subscription_expiration_date: Option(Int),
+    /// True, if the payment is a recurring payment for a subscription
+    is_recurring: Option(Bool),
+    /// True, if the payment is the first payment for a subscription
+    is_first_recurring: Option(Bool),
+    /// Identifier of the shipping option chosen by the user
+    shipping_option_id: Option(String),
+    /// Order information provided by the user
+    order_info: Option(OrderInfo),
+    /// Telegram payment identifier
+    telegram_payment_charge_id: String,
+    /// Provider payment identifier
+    provider_payment_charge_id: String,
+  )
+}
+
+pub fn decode_successful_payment(
+  json: Dynamic,
+) -> Result(SuccessfulPayment, dynamic.DecodeErrors) {
+  let decode_currency = dynamic.field("currency", dynamic.string)
+  let decode_total_amount = dynamic.field("total_amount", dynamic.int)
+  let decode_invoice_payload = dynamic.field("invoice_payload", dynamic.string)
+  let decode_subscription_expiration_date =
+    dynamic.optional_field("subscription_expiration_date", dynamic.int)
+  let decode_is_recurring = dynamic.optional_field("is_recurring", dynamic.bool)
+  let decode_is_first_recurring =
+    dynamic.optional_field("is_first_recurring", dynamic.bool)
+  let decode_shipping_option_id =
+    dynamic.optional_field("shipping_option_id", dynamic.string)
+  let decode_order_info =
+    dynamic.optional_field("order_info", decode_order_info)
+  let decode_telegram_payment_charge_id =
+    dynamic.field("telegram_payment_charge_id", dynamic.string)
+  let decode_provider_payment_charge_id =
+    dynamic.field("provider_payment_charge_id", dynamic.string)
+
+  case
+    decode_currency(json),
+    decode_total_amount(json),
+    decode_invoice_payload(json),
+    decode_subscription_expiration_date(json),
+    decode_is_recurring(json),
+    decode_is_first_recurring(json),
+    decode_shipping_option_id(json),
+    decode_order_info(json),
+    decode_telegram_payment_charge_id(json),
+    decode_provider_payment_charge_id(json)
+  {
+    Ok(currency),
+      Ok(total_amount),
+      Ok(invoice_payload),
+      Ok(subscription_expiration_date),
+      Ok(is_recurring),
+      Ok(is_first_recurring),
+      Ok(shipping_option_id),
+      Ok(order_info),
+      Ok(telegram_payment_charge_id),
+      Ok(provider_payment_charge_id)
+    ->
+      Ok(SuccessfulPayment(
+        currency: currency,
+        total_amount: total_amount,
+        invoice_payload: invoice_payload,
+        subscription_expiration_date: subscription_expiration_date,
+        is_recurring: is_recurring,
+        is_first_recurring: is_first_recurring,
+        shipping_option_id: shipping_option_id,
+        order_info: order_info,
+        telegram_payment_charge_id: telegram_payment_charge_id,
+        provider_payment_charge_id: provider_payment_charge_id,
+      ))
+    currency,
+      total_amount,
+      invoice_payload,
+      subscription_expiration_date,
+      is_recurring,
+      is_first_recurring,
+      shipping_option_id,
+      order_info,
+      telegram_payment_charge_id,
+      provider_payment_charge_id
+    ->
+      Error(
+        list.flatten([
+          all_errors(currency),
+          all_errors(total_amount),
+          all_errors(invoice_payload),
+          all_errors(subscription_expiration_date),
+          all_errors(is_recurring),
+          all_errors(is_first_recurring),
+          all_errors(shipping_option_id),
+          all_errors(order_info),
+          all_errors(telegram_payment_charge_id),
+          all_errors(provider_payment_charge_id),
+        ]),
+      )
+  }
+}
+
+// RefundedPayment ---------------------------------------------------------------------------
+
+pub type RefundedPayment {
+  RefundedPayment(
+    /// Three-letter ISO 4217 currency code, or “XTR” for payments in Telegram Stars. Currently, always “XTR”
+    currency: String,
+    /// Total refunded price in the smallest units of the currency
+    total_amount: Int,
+    /// Bot-specified invoice payload
+    invoice_payload: String,
+    /// Telegram payment identifier
+    telegram_payment_charge_id: String,
+    /// Provider payment identifier
+    provider_payment_charge_id: Option(String),
+  )
+}
+
+pub fn decode_refunded_payment(
+  json: Dynamic,
+) -> Result(RefundedPayment, dynamic.DecodeErrors) {
+  json
+  |> dynamic.decode5(
+    RefundedPayment,
+    dynamic.field("currency", dynamic.string),
+    dynamic.field("total_amount", dynamic.int),
+    dynamic.field("invoice_payload", dynamic.string),
+    dynamic.field("telegram_payment_charge_id", dynamic.string),
+    dynamic.optional_field("provider_payment_charge_id", dynamic.string),
+  )
+}
+
+// Invoice ---------------------------------------------------------------------------
+
+pub type Invoice {
+  Invoice(
+    /// Product name
+    title: String,
+    /// Product description
+    description: String,
+    /// Unique bot deep-linking parameter that can be used to generate this invoice
+    start_parameter: String,
+    /// Three-letter ISO 4217 currency code, or “XTR” for payments in Telegram Stars
+    currency: String,
+    /// Total price in the smallest units of the currency
+    total_amount: Int,
+  )
+}
+
+pub fn decode_invoice(json: Dynamic) -> Result(Invoice, dynamic.DecodeErrors) {
+  json
+  |> dynamic.decode5(
+    Invoice,
+    dynamic.field("title", dynamic.string),
+    dynamic.field("description", dynamic.string),
+    dynamic.field("start_parameter", dynamic.string),
+    dynamic.field("currency", dynamic.string),
+    dynamic.field("total_amount", dynamic.int),
+  )
 }

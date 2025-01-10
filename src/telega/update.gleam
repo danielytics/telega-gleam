@@ -5,8 +5,8 @@ import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/string
 import telega/model.{
-  type CallbackQuery, type Message, type MessageEntity,
-  type Update as ModelUpdate,
+  type CallbackQuery, type Message, type MessageEntity, type Poll,
+  type PollAnswer, type PreCheckoutQuery, type Update as ModelUpdate,
 }
 
 /// Messages represent the data that the bot receives from the Telegram API.
@@ -14,6 +14,9 @@ pub type Update {
   TextUpdate(chat_id: Int, text: String, raw: Message)
   CommandUpdate(chat_id: Int, command: Command, raw: Message)
   CallbackQueryUpdate(from_id: Int, raw: CallbackQuery)
+  PollUpdate(poll_id: String, raw: Poll)
+  PollAnswerUpdate(poll_id: String, raw: PollAnswer)
+  PreCheckoutQueryUpdate(from_id: Int, raw: PreCheckoutQuery)
   UnknownUpdate(raw: ModelUpdate)
 }
 
@@ -37,6 +40,9 @@ pub fn decode(json: Dynamic) -> Result(Update, String) {
   )
   use <- try_decode_to_callback_query(raw_update)
   use <- try_to_decode_message_or_command(raw_update)
+  use <- try_decode_poll(raw_update)
+  use <- try_decode_poll_answer(raw_update)
+  use <- try_decode_pre_checkout_query(raw_update)
 
   Ok(UnknownUpdate(raw_update))
 }
@@ -77,6 +83,38 @@ fn try_to_decode_message_or_command(
         None -> on_none()
       }
     }
+    None -> on_none()
+  }
+}
+
+fn try_decode_poll(
+  raw_update: ModelUpdate,
+  on_none: fn() -> Result(Update, String),
+) {
+  case raw_update.poll {
+    Some(poll) -> Ok(PollUpdate(poll_id: poll.id, raw: poll))
+    None -> on_none()
+  }
+}
+
+fn try_decode_poll_answer(
+  raw_update: ModelUpdate,
+  on_none: fn() -> Result(Update, String),
+) {
+  case raw_update.poll_answer {
+    Some(poll_answer) ->
+      Ok(PollAnswerUpdate(poll_id: poll_answer.poll_id, raw: poll_answer))
+    None -> on_none()
+  }
+}
+
+fn try_decode_pre_checkout_query(
+  raw_update: ModelUpdate,
+  on_none: fn() -> Result(Update, String),
+) {
+  case raw_update.pre_checkout_query {
+    Some(query) ->
+      Ok(PreCheckoutQueryUpdate(from_id: query.from.id, raw: query))
     None -> on_none()
   }
 }

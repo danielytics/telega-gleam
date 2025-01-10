@@ -211,6 +211,10 @@ fn get_session_key(update: Update) -> Result(String, String) {
     CommandUpdate(chat_id: chat_id, ..) -> Ok(int.to_string(chat_id))
     TextUpdate(chat_id: chat_id, ..) -> Ok(int.to_string(chat_id))
     CallbackQueryUpdate(from_id: from_id, ..) -> Ok(int.to_string(from_id))
+    update.PollAnswerUpdate(poll_id: poll_id, ..) -> Ok(poll_id)
+    update.PollUpdate(poll_id: poll_id, ..) -> Ok(poll_id)
+    update.PreCheckoutQueryUpdate(from_id: from_id, ..) ->
+      Ok(int.to_string(from_id))
     UnknownUpdate(..) ->
       Error("Unknown update type don't allow to get session key")
   }
@@ -380,6 +384,10 @@ pub type Handler(session) {
     filter: CallbackQueryFilter,
     handler: fn(Context(session), String, String) -> Result(session, String),
   )
+  /// Handle all updates, regardless of type
+  HandleUpdates(
+    handler: fn(Context(session), Update) -> Option(Result(session, String)),
+  )
 }
 
 pub type CallbackQueryFilter {
@@ -422,6 +430,8 @@ fn do_handle(
           }
         None -> None
       }
+    HandleUpdates(maybe_handle), _ ->
+      maybe_handle(new_context(bot, update), update)
     _, _ -> None
   }
 }

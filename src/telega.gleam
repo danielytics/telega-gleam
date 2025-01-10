@@ -10,7 +10,7 @@ import telega/bot.{
   type CallbackQueryFilter, type Context, type Handler, type Hears,
   type RegistryMessage, type SessionSettings, CallbackQueryFilter, Context,
   HandleAll, HandleBotRegistryMessage, HandleCallbackQuery, HandleCommand,
-  HandleCommands, HandleHears, HandleText, SessionSettings,
+  HandleCommands, HandleHears, HandleText, HandleUpdates, SessionSettings,
 }
 import telega/internal/config.{type Config}
 import telega/log
@@ -176,6 +176,53 @@ pub fn wait_callback_query(
     Result(session, String),
 ) -> Result(session, String) {
   bot.wait_handler(ctx, HandleCallbackQuery(filter, continue))
+}
+
+pub fn wait_poll(
+  ctx ctx: Context(session),
+  continue continue: fn(Context(session), model.Poll) -> Result(session, String),
+) -> Result(session, String) {
+  bot.wait_handler(
+    ctx,
+    HandleUpdates(fn(ctx, update) {
+      case update {
+        update.PollUpdate(raw: raw, ..) -> Some(continue(ctx, raw))
+        _ -> None
+      }
+    }),
+  )
+}
+
+pub fn wait_poll_answer(
+  ctx ctx: Context(session),
+  continue continue: fn(Context(session), model.PollAnswer) ->
+    Result(session, String),
+) -> Result(session, String) {
+  bot.wait_handler(
+    ctx,
+    HandleUpdates(fn(ctx, update) {
+      case update {
+        update.PollAnswerUpdate(raw: raw, ..) -> Some(continue(ctx, raw))
+        _ -> None
+      }
+    }),
+  )
+}
+
+pub fn wait_pre_checkout_query(
+  ctx ctx: Context(session),
+  continue continue: fn(Context(session), model.PreCheckoutQuery) ->
+    Result(session, String),
+) -> Result(session, String) {
+  bot.wait_handler(
+    ctx,
+    HandleUpdates(fn(ctx, update) {
+      case update {
+        update.PreCheckoutQueryUpdate(raw: raw, ..) -> Some(continue(ctx, raw))
+        _ -> None
+      }
+    }),
+  )
 }
 
 /// Log the message and error message if the handler fails.
